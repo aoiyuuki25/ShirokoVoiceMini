@@ -32,12 +32,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      
       - name: Repair Android project structure
         shell: bash
         run: |
-          mkdir -p app/src/main/java/com/shiroko/voicemin
+          mkdir -p app/src/main/java/com/shiroko/voicemini
           mkdir -p app/src/main/res/values
-          cp MainActivity.java app/src/main/java/com/shiroko/voicemin/MainActivity.java
+          cp MainActivity.java app/src/main/java/com/shiroko/voicemini/MainActivity.java
           cp AndroidManifest.xml app/src/main/AndroidManifest.xml
           cp styles.xml app/src/main/res/values/styles.xml
           cp build.gradle app/build.gradle
@@ -46,6 +47,10 @@ jobs:
               id 'com.android.application' version '8.7.3' apply false
           }
           EOF
+
+      - name: Build APK
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
+        
 
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
