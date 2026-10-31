@@ -1,249 +1,196 @@
+package com.shiroko.voicemini;
 
-package com.shiroko.voicemin;
-
-import android.app.Activity;
-import android.os.Bundle;
 import android.media.MediaPlayer;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
-import android.view.Gravity;
+import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
 
-    private LinearLayout content;
+    private MediaPlayer mp;
+    private LinearLayout daftarAudio;
     private TextView status;
-    private MediaPlayer player;
+    private EditText pencarian;
+    private final List<AudioItem> audioList = new ArrayList<>();
 
-    private final Map<String, Integer> sounds =
-            new LinkedHashMap<String, Integer>();
+    static class AudioItem {
+        String nama;
+        int id;
 
-    private final int bg = Color.rgb(17, 25, 39);
-    private final int panel = Color.rgb(29, 41, 59);
-    private final int white = Color.WHITE;
-    private final int muted = Color.rgb(180, 195, 215);
+        AudioItem(String nama, int id) {
+            this.nama = nama;
+            this.id = id;
+        }
+    }
 
     @Override
-    protected void onCreate(Bundle state) {
-        super.onCreate(state);
-
-        sounds.put("Shiroko Hello", R.raw.shiroko_hello);
-        sounds.put("Shiroko Laugh", R.raw.shiroko_laugh);
-        sounds.put("Shiroko Battle", R.raw.shiroko_battle);
-
-        sounds.put("Title", R.raw.title);
-        sounds.put("Gachaget", R.raw.gachaget);
-        sounds.put("Cafe Act 1", R.raw.cafe_act_1);
-        sounds.put("Cafe Act 2", R.raw.cafe_act_2);
-        sounds.put("Birthday", R.raw.birthday);
-        sounds.put("Birthday Player", R.raw.birthday_player);
-        sounds.put("New Year", R.raw.season_newyear);
-        sounds.put("Halloween", R.raw.season_halloween);
-        sounds.put("Christmas", R.raw.season_xmas);
-        sounds.put("Get", R.raw.get);
-
-        buildHome();
-    }
-
-    private GradientDrawable shape(int color, int radius) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(color);
-        d.setCornerRadius(radius);
-        return d;
-    }
-
-    private TextView makeText(
-            String value, int size, int color) {
-
-        TextView t = new TextView(this);
-        t.setText(value);
-        t.setTextSize(size);
-        t.setTextColor(color);
-        t.setGravity(Gravity.CENTER_VERTICAL);
-        return t;
-    }
-
-    private Button makeButton(String label) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setTextColor(white);
-        b.setAllCaps(false);
-        b.setTextSize(15);
-        b.setBackground(shape(panel, 18));
-        return b;
-    }
-
-    private void buildHome() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(18, 20, 18, 14);
-        root.setBackgroundColor(bg);
-
-        TextView title = makeText(
-                "SHIROKO VOICE MINI", 23, white);
-        title.setTypeface(null, Typeface.BOLD);
-        root.addView(title);
-
-        root.addView(makeText(
-                "Simple Soundboard • Lightweight",
-                13, muted));
-
-        LinearLayout nav = new LinearLayout(this);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
-
-        Button home = makeButton("Soundboard");
-        Button info = makeButton("Info");
-
-        nav.addView(home,
-                new LinearLayout.LayoutParams(0, 48, 1));
-        nav.addView(info,
-                new LinearLayout.LayoutParams(0, 48, 1));
-        root.addView(nav);
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
 
         ScrollView scroll = new ScrollView(this);
-        content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(content);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(24, 24, 24, 24);
+        scroll.addView(root);
 
-        root.addView(scroll,
-                new LinearLayout.LayoutParams(-1, 0, 1));
+        TextView judul = new TextView(this);
+        judul.setText("SHIROKO VOICE MINI");
+        judul.setTextSize(24);
+        root.addView(judul);
 
-        status = makeText("Status: Siap", 13, muted);
-        status.setPadding(0, 12, 0, 4);
+        TextView jumlah = new TextView(this);
+        jumlah.setText("Memuat daftar suara...");
+        root.addView(jumlah);
+
+        status = new TextView(this);
+        status.setText("Pilih suara untuk memutar audio.");
         root.addView(status);
 
-        home.setOnClickListener(v -> showSoundboard());
-        info.setOnClickListener(v -> showInfo());
+        pencarian = new EditText(this);
+        pencarian.setSingleLine(true);
+        pencarian.setHint("Cari suara Shiroko...");
+        root.addView(pencarian);
 
-        setContentView(root);
-        showSoundboard();
+        Button berhenti = new Button(this);
+        berhenti.setText("■ Berhenti");
+        berhenti.setOnClickListener(v -> stopAudio());
+        root.addView(berhenti);
+
+        daftarAudio = new LinearLayout(this);
+        daftarAudio.setOrientation(LinearLayout.VERTICAL);
+        root.addView(daftarAudio);
+
+        muatAudio();
+
+        jumlah.setText("Audio tersedia: " + audioList.size());
+
+        tampilkanAudio("");
+
+        pencarian.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(
+                    CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(
+                    CharSequence s, int start, int before, int count) {
+                tampilkanAudio(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(
+                    android.text.Editable s) {}
+        });
+
+        setContentView(scroll);
     }
 
-    private void showSoundboard() {
-        content.removeAllViews();
+    private void muatAudio() {
+        try {
+            Field[] fields = R.raw.class.getFields();
 
-        TextView heading = makeText(
-                "Shiroko Soundboard", 20, white);
-        heading.setTypeface(null, Typeface.BOLD);
-        content.addView(heading);
+            for (Field field : fields) {
+                try {
+                    int id = field.getInt(null);
+                    String nama = field.getName();
 
-        content.addView(makeText(
-                "Pilih audio untuk memutarnya.",
-                14, muted));
+                    audioList.add(new AudioItem(nama, id));
+                } catch (Exception ignored) {
+                    // Lewati resource yang tidak bisa dibaca.
+                }
+            }
 
-        for (Map.Entry<String, Integer> entry
-                : sounds.entrySet()) {
+            Collections.sort(audioList, Comparator.comparing(
+                    item -> item.nama.toLowerCase(Locale.ROOT)
+            ));
 
-            final String label = entry.getKey();
-            final int audioId = entry.getValue();
+        } catch (Exception e) {
+            status.setText("Gagal membaca daftar audio.");
+        }
+    }
 
-            Button b = makeButton("▶  " + label);
+    private void tampilkanAudio(String kataKunci) {
+        daftarAudio.removeAllViews();
 
-            LinearLayout.LayoutParams lp =
-                    new LinearLayout.LayoutParams(-1, 54);
-            lp.setMargins(0, 8, 0, 0);
-            content.addView(b, lp);
+        String filter = kataKunci.toLowerCase(Locale.ROOT);
+        int jumlahTampil = 0;
 
-            b.setOnClickListener(v ->
-                    playSound(label, audioId));
+        for (AudioItem item : audioList) {
+            if (!item.nama.toLowerCase(Locale.ROOT).contains(filter)) {
+                continue;
+            }
+
+            Button tombol = new Button(this);
+            tombol.setText("▶ " + item.nama);
+            tombol.setOnClickListener(
+                    v -> putarAudio(item.id, item.nama)
+            );
+
+            daftarAudio.addView(tombol);
+            jumlahTampil++;
         }
 
-        Button stop = makeButton("■  Stop Audio");
-
-        LinearLayout.LayoutParams stopLp =
-                new LinearLayout.LayoutParams(-1, 50);
-        stopLp.setMargins(0, 14, 0, 12);
-        content.addView(stop, stopLp);
-
-        stop.setOnClickListener(v -> {
-            stopSound();
-            status.setText("Status: Audio dihentikan");
-        });
+        if (jumlahTampil == 0) {
+            TextView kosong = new TextView(this);
+            kosong.setText(audioList.isEmpty()
+                    ? "Belum ada audio di res/raw."
+                    : "Audio tidak ditemukan.");
+            daftarAudio.addView(kosong);
+        }
     }
 
-    private void playSound(String label, int audioId) {
-        stopSound();
+    private void putarAudio(int id, String nama) {
+        stopAudio();
 
         try {
-            player = MediaPlayer.create(this, audioId);
+            mp = MediaPlayer.create(this, id);
 
-            if (player == null) {
-                status.setText("Status: Audio gagal dibuka");
+            if (mp == null) {
+                status.setText("Gagal memuat audio: " + nama);
                 return;
             }
 
-            player.setOnCompletionListener(mp -> {
-                stopSound();
-                status.setText("Status: Selesai");
+            mp.setOnCompletionListener(player -> {
+                player.release();
+                if (mp == player) {
+                    mp = null;
+                }
+                status.setText("Selesai: " + nama);
             });
 
-            player.start();
-            status.setText("Status: Memutar " + label);
+            mp.start();
+            status.setText("Sedang memutar: " + nama);
 
         } catch (Exception e) {
-            stopSound();
-            status.setText("Status: Gagal memutar audio");
+            stopAudio();
+            status.setText("Audio gagal diputar: " + nama);
         }
     }
 
-    private void stopSound() {
-        if (player != null) {
+    private void stopAudio() {
+        if (mp != null) {
             try {
-                if (player.isPlaying()) {
-                    player.stop();
+                if (mp.isPlaying()) {
+                    mp.stop();
                 }
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
 
-            try {
-                player.release();
-            } catch (Exception ignored) {
-            }
-
-            player = null;
+            mp.release();
+            mp = null;
         }
-    }
-
-    private void showInfo() {
-        content.removeAllViews();
-
-        TextView heading = makeText(
-                "Tentang Aplikasi", 21, white);
-        heading.setTypeface(null, Typeface.BOLD);
-        content.addView(heading);
-
-        TextView details = makeText(
-                "\nShiroko Voice Mini\n\n"
-                + "• 13 tombol soundboard\n"
-                + "• Audio lokal\n"
-                + "• Tampilan sederhana\n"
-                + "• Tidak membutuhkan izin internet\n\n"
-                + "AI voice changer real-time belum tersedia.\n"
-                + "Audio soundboard tidak otomatis menjadi "
-                + "input mikrofon di dalam game.",
-                15, muted);
-
-        content.addView(details);
-    }
-
-    @Override
-    protected void onStop() {
-        stopSound();
-        super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-        stopSound();
+        stopAudio();
         super.onDestroy();
     }
-    }
+}
