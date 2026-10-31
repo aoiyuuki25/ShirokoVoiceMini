@@ -23,15 +23,35 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
-          packages: 'platforms;android-35,build-tools;35.0.0'
+          packages: 'platform-tools'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Repair Android project structure
+        shell: bash
+        run: |
+          mkdir -p app/src/main/java/com/shiroko/voicemin
+          mkdir -p app/src/main/res/values
+          cp MainActivity.java app/src/main/java/com/shiroko/voicemin/MainActivity.java
+          cp AndroidManifest.xml app/src/main/AndroidManifest.xml
+          cp styles.xml app/src/main/res/values/styles.xml
+          cp build.gradle app/build.gradle
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build APK
-        run: gradle assembleDebug
+        run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         if: success()
