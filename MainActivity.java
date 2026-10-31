@@ -1,8 +1,10 @@
+
 package com.shiroko.voicemini;
 
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.view.View;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -46,10 +48,6 @@ public class MainActivity extends AppCompatActivity {
         judul.setTextSize(24);
         root.addView(judul);
 
-        TextView jumlah = new TextView(this);
-        jumlah.setText("Memuat daftar suara...");
-        root.addView(jumlah);
-
         status = new TextView(this);
         status.setText("Pilih suara untuk memutar audio.");
         root.addView(status);
@@ -69,12 +67,9 @@ public class MainActivity extends AppCompatActivity {
         root.addView(daftarAudio);
 
         muatAudio();
-
-        jumlah.setText("Audio tersedia: " + audioList.size());
-
         tampilkanAudio("");
 
-        pencarian.addTextChangedListener(new android.text.TextWatcher() {
+        pencarian.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(
                     CharSequence s, int start, int count, int after) {}
@@ -86,8 +81,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(
-                    android.text.Editable s) {}
+            public void afterTextChanged(Editable s) {}
         });
 
         setContentView(scroll);
@@ -99,19 +93,17 @@ public class MainActivity extends AppCompatActivity {
 
             for (Field field : fields) {
                 try {
-                    int id = field.getInt(null);
-                    String nama = field.getName();
-
-                    audioList.add(new AudioItem(nama, id));
-                } catch (Exception ignored) {
-                    // Lewati resource yang tidak bisa dibaca.
-                }
+                    audioList.add(
+                        new AudioItem(field.getName(), field.getInt(null))
+                    );
+                } catch (Exception ignored) {}
             }
 
-            Collections.sort(audioList, Comparator.comparing(
-                    item -> item.nama.toLowerCase(Locale.ROOT)
-            ));
-
+            Collections.sort(audioList,
+                Comparator.comparing(item ->
+                    item.nama.toLowerCase(Locale.ROOT)
+                )
+            );
         } catch (Exception e) {
             status.setText("Gagal membaca daftar audio.");
         }
@@ -131,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
             Button tombol = new Button(this);
             tombol.setText("▶ " + item.nama);
             tombol.setOnClickListener(
-                    v -> putarAudio(item.id, item.nama)
+                v -> putarAudio(item.id, item.nama)
             );
 
             daftarAudio.addView(tombol);
@@ -141,8 +133,8 @@ public class MainActivity extends AppCompatActivity {
         if (jumlahTampil == 0) {
             TextView kosong = new TextView(this);
             kosong.setText(audioList.isEmpty()
-                    ? "Belum ada audio di res/raw."
-                    : "Audio tidak ditemukan.");
+                ? "Belum ada audio di res/raw."
+                : "Audio tidak ditemukan.");
             daftarAudio.addView(kosong);
         }
     }
