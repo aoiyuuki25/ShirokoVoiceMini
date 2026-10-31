@@ -1,4 +1,5 @@
 package com.shiroko.voicemin;
+import android.media.audiofx.AcousticEchoCanceler;
 
 import android.Manifest;
 import android.app.Activity;
@@ -158,8 +159,7 @@ public class MainActivity extends Activity {
             running = true;
             startButton.setText("Hentikan");
             status.setText("Status: mikrofon aktif");
-            player.setPlaybackRate((int)(SAMPLE_RATE * rateFor(pitchSeek.getProgress())));
-            recorder.startRecording();
+        MediaRecorder.AudioSource.VOICE_COMMUNICATION
             player.play();
             audioThread = new Thread(() -> {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
@@ -213,3 +213,20 @@ public class MainActivity extends Activity {
         super.onStop();
     }
 }
+private AcousticEchoCanceler echoCanceler;
+if (AcousticEchoCanceler.isAvailable()) {
+    echoCanceler =
+        AcousticEchoCanceler.create(recorder.getAudioSessionId());
+
+    if (echoCanceler != null) {
+        echoCanceler.setEnabled(true);
+    }
+}
+try {
+    if (echoCanceler != null) {
+        echoCanceler.setEnabled(false);
+        echoCanceler.release();
+    }
+} catch (Exception ignored) {}
+
+echoCanceler = null;
