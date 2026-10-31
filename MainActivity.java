@@ -5,208 +5,249 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.media.MediaPlayer;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.widget.*;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MainActivity extends Activity {
 
-    private MediaPlayer player;
     private LinearLayout content;
     private TextView status;
+    private MediaPlayer player;
 
-    private final Map<String, Integer> sounds =
-        new LinkedHashMap<String, Integer>();
+    private final Map<String, String> sounds =
+            new LinkedHashMap<String, String>();
+
+    private final int bg = Color.rgb(17, 25, 39);
+    private final int panel = Color.rgb(29, 41, 59);
+    private final int white = Color.WHITE;
+    private final int muted = Color.rgb(180, 195, 215);
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
 
-        // Daftar suara Shiroko
-        sounds.put("Title", R.raw.title);
-        sounds.put("Gachaget", R.raw.gachaget);
-        sounds.put("Cafe Act 1", R.raw.cafe_act_1);
-        sounds.put("Cafe Act 2", R.raw.cafe_act_2);
-        sounds.put("Birthday", R.raw.birthday);
-        sounds.put("Birthday Player", R.raw.birthday_player);
-        sounds.put("NewYear", R.raw.season_newyear);
-        sounds.put("Halloween", R.raw.season_halloween);
-        sounds.put("Xmas", R.raw.season_xmas);
-        sounds.put("Get", R.raw.get);
+        sounds.put("Title", "title");
+        sounds.put("Gachaget", "gachaget");
+        sounds.put("Cafe Act 1", "cafe_act_1");
+        sounds.put("Cafe Act 2", "cafe_act_2");
+        sounds.put("Birthday", "birthday");
+        sounds.put("Birthday Player", "birthday_player");
+        sounds.put("New Year", "season_newyear");
+        sounds.put("Halloween", "season_halloween");
+        sounds.put("Christmas", "season_xmas");
+        sounds.put("Get", "get");
 
-        buildUI();
-        showSoundboard();
+        buildHome();
     }
 
-    private void buildUI() {
+    private GradientDrawable shape(int color, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(radius);
+        return d;
+    }
+
+    private TextView makeText(String value, int size, int color) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        return t;
+    }
+
+    private Button makeButton(String label) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setTextColor(white);
+        b.setAllCaps(false);
+        b.setTextSize(15);
+        b.setBackground(shape(panel, 18));
+        return b;
+    }
+
+    private void buildHome() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(16, 12, 16, 12);
-        root.setBackgroundColor(Color.rgb(238, 246, 255));
+        root.setPadding(18, 20, 18, 14);
+        root.setBackgroundColor(bg);
 
-        TextView title = new TextView(this);
-        title.setText("SHIROKO VOICE MINI");
-        title.setTextSize(23);
-        title.setTextColor(Color.rgb(35, 100, 160));
-        title.setGravity(Gravity.CENTER);
-        title.setPadding(4, 12, 4, 16);
+        TextView title = makeText("SHIROKO VOICE MINI", 23, white);
+        title.setTypeface(null, Typeface.BOLD);
         root.addView(title);
+
+        root.addView(makeText(
+                "Simple Soundboard • Lightweight", 13, muted));
 
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
 
-        Button soundButton = new Button(this);
-        soundButton.setText("Soundboard");
+        Button home = makeButton("Soundboard");
+        Button info = makeButton("Info");
 
-        Button aiButton = new Button(this);
-        aiButton.setText("AI Voice");
-
-        nav.addView(soundButton,
-            new LinearLayout.LayoutParams(0, -2, 1));
-        nav.addView(aiButton,
-            new LinearLayout.LayoutParams(0, -2, 1));
+        nav.addView(home, new LinearLayout.LayoutParams(0, 48, 1));
+        nav.addView(info, new LinearLayout.LayoutParams(0, 48, 1));
         root.addView(nav);
-
-        status = new TextView(this);
-        status.setText("Siap");
-        status.setTextSize(14);
-        status.setTextColor(Color.DKGRAY);
-        status.setPadding(8, 10, 8, 10);
-        root.addView(status);
 
         ScrollView scroll = new ScrollView(this);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content);
 
-        root.addView(scroll,
-            new LinearLayout.LayoutParams(-1, 0, 1));
+        root.addView(scroll, new LinearLayout.LayoutParams(
+                -1, 0, 1));
 
-        soundButton.setOnClickListener(v -> showSoundboard());
-        aiButton.setOnClickListener(v -> showAIPage());
+        status = makeText("Status: Siap", 13, muted);
+        status.setPadding(0, 12, 0, 4);
+        root.addView(status);
+
+        home.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showSoundboard();
+            }
+        });
+
+        info.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showInfo();
+            }
+        });
 
         setContentView(root);
+        showSoundboard();
     }
 
     private void showSoundboard() {
-        stopSound();
         content.removeAllViews();
 
-        TextView heading = new TextView(this);
-        heading.setText("Shiroko Soundboard");
-        heading.setTextSize(20);
-        heading.setTextColor(Color.rgb(35, 100, 160));
+        TextView heading = makeText("Shiroko Soundboard", 20, white);
+        heading.setTypeface(null, Typeface.BOLD);
         content.addView(heading);
 
-        Button stopButton = new Button(this);
-        stopButton.setText("STOP AUDIO");
-        stopButton.setOnClickListener(v -> stopSound());
-        content.addView(stopButton);
+        content.addView(makeText(
+                "Pilih audio untuk memutarnya.", 14, muted));
 
-        for (Map.Entry<String, Integer> item :
-                sounds.entrySet()) {
+        for (final Map.Entry<String, String> entry
+                : sounds.entrySet()) {
 
-            final String name = item.getKey();
-            final int resource = item.getValue();
+            Button b = makeButton("▶  " + entry.getKey());
 
-            Button button = new Button(this);
-            button.setText(name);
+            LinearLayout.LayoutParams lp =
+                    new LinearLayout.LayoutParams(-1, 54);
+            lp.setMargins(0, 8, 0, 0);
+            content.addView(b, lp);
 
-            button.setOnClickListener(v ->
-                playSound(name, resource));
-
-            content.addView(button);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    playSound(entry.getKey(), entry.getValue());
+                }
+            });
         }
+
+        Button stop = makeButton("■  Stop Audio");
+        LinearLayout.LayoutParams stopLp =
+                new LinearLayout.LayoutParams(-1, 50);
+        stopLp.setMargins(0, 14, 0, 12);
+        content.addView(stop, stopLp);
+
+        stop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopSound();
+                status.setText("Status: Audio dihentikan");
+            }
+        });
     }
 
-    private void playSound(String name, int resource) {
+    private void playSound(String label, String resourceName) {
         stopSound();
 
+        int id = getResources().getIdentifier(
+                resourceName, "raw", getPackageName());
+
+        if (id == 0) {
+            status.setText("Status: Audio belum tersedia");
+            Toast.makeText(this,
+                    "Tambahkan " + resourceName + ".mp3 ke res/raw",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
         try {
-            player = MediaPlayer.create(this, resource);
+            player = MediaPlayer.create(this, id);
 
             if (player == null) {
-                status.setText("Audio gagal dimuat: " + name);
+                status.setText("Status: Audio gagal dibuka");
                 return;
             }
 
-            final MediaPlayer current = player;
-
-            current.setOnCompletionListener(mp -> {
-                mp.release();
-
-                if (player == mp) {
-                    player = null;
+            player.setOnCompletionListener(
+                    new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    stopSound();
+                    status.setText("Status: Selesai");
                 }
-
-                status.setText("Selesai: " + name);
             });
 
-            current.start();
-            status.setText("Memutar: " + name);
+            player.start();
+            status.setText("Status: Memutar " + label);
 
         } catch (Exception e) {
             stopSound();
-            status.setText("Gagal memutar audio");
+            status.setText("Status: Gagal memutar audio");
         }
     }
 
     private void stopSound() {
         if (player != null) {
-            MediaPlayer old = player;
-            player = null;
-
             try {
-                if (old.isPlaying()) {
-                    old.stop();
+                if (player.isPlaying()) {
+                    player.stop();
                 }
             } catch (Exception ignored) {
             }
 
-            old.release();
-        }
+            try {
+                player.release();
+            } catch (Exception ignored) {
+            }
 
-        if (status != null) {
-            status.setText("Audio dihentikan");
+            player = null;
         }
     }
 
-    private void showAIPage() {
-        stopSound();
+    private void showInfo() {
         content.removeAllViews();
 
-        TextView heading = new TextView(this);
-        heading.setText("AI VOICE CHANGER");
-        heading.setTextSize(20);
-        heading.setTextColor(Color.rgb(35, 100, 160));
+        TextView heading = makeText("Tentang Aplikasi", 21, white);
+        heading.setTypeface(null, Typeface.BOLD);
         content.addView(heading);
 
-        TextView info = new TextView(this);
-        info.setText(
-            "Status: Mesin AI belum terpasang.\n\n" +
-            "Fitur yang direncanakan:\n" +
-            "- Input suara mikrofon\n" +
-            "- Konversi suara berbasis AI\n" +
-            "- Pemrosesan audio real-time\n" +
-            "- Pengujian latensi\n\n" +
-            "HP RAM 3 GB:\n" +
-            "Gunakan model ringan dan batasi " +
-            "pemakaian memori.\n\n" +
-            "Catatan:\n" +
-            "Halaman ini belum mengubah suara. " +
-            "Diperlukan model AI dan mesin inferensi " +
-            "yang kompatibel dengan Android."
-        );
+        TextView details = makeText(
+                "\nShiroko Voice Mini\n\n"
+                + "• Soundboard audio lokal\n"
+                + "• Tampilan sederhana\n"
+                + "• Tidak membutuhkan AppCompat\n"
+                + "• Tidak membutuhkan izin internet\n\n"
+                + "AI voice changer real-time belum tersedia.\n"
+                + "Audio soundboard tidak otomatis menjadi "
+                + "input mikrofon di dalam game.",
+                15, muted);
 
-        info.setTextSize(16);
-        info.setPadding(8, 16, 8, 16);
-        content.addView(info);
-
-        Button back = new Button(this);
-        back.setText("Kembali ke Soundboard");
-        back.setOnClickListener(v -> showSoundboard());
-        content.addView(back);
+        content.addView(details);
     }
 
     @Override
@@ -221,10 +262,3 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 }
-
-
-
-        
-         
-                 
-    
